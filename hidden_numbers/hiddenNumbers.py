@@ -6,7 +6,7 @@ for i, line in enumerate(inputList):
 	myStr = ''
 	if i is 0:
 		cases = line.rstrip()
-	else:
+	elif i is 1:
 		length = len(set(line.rstrip()))
 		bigN = 0
 		smallN = 0
@@ -18,6 +18,8 @@ for i, line in enumerate(inputList):
 				continue
 			else:
 				smallN += (length-j-1)*length**(j)
+		print(bigN)
+		print(smallN)
 		outputList.write('Case #%d: %d\n' % (i, bigN-smallN))
 		
 		
