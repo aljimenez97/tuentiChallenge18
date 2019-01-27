@@ -1,79 +1,56 @@
+#!/usr/local/bin/python3
+
 import numpy as np
-class Square:
+from heapq import heappush, heappop
 
-	def __init__(self, position, nature, region, matrix):
-		
-		self.id = str(position[0]) + str(position[1])
-		self.position = position
-		self.nature = nature 
-		self.reachableBy = []
-		self.routes = self.neighbourIterator(position, self.axis[self.nature], region[0], region[1], matrix)
-		self.region = region
-		self.matrix = matrix
-		#repr(self)
+class Grid:
+	def __init__(self):
+		self.S = 0
+		self.P = 0
+		self.D = 0
+		self.matrix = []
 
-	axis = {'#': [0,0], 'S': [[1,2], [2,1]], 'P': [[1,2], [2,1]], 'D': [[1,2], [2,1]], '.': [[1,2], [2,1]], '*': [[2,4], [4,2]] }
-	myBase = [[1,1],[1,-1],[-1,1],[-1,-1]]
-	def neighbourIterator(self, myPosition, myAxis, height, width, matrix):
-		pos = np.array(myPosition)
-		neighbours = []
-		for ax in myAxis:
-			for i in self.myBase:
-				attempt = pos + np.array(i)*np.array(ax)
-				if self.checkNeighbourExists(attempt, height, width, matrix):
-					neighbours.append([ str(attempt[0]) + str(attempt[1]), attempt, str(myPosition[0]) + str(myPosition[1]), myPosition, 1])
-		return neighbours
+	def setMatrix(self, matrix):
+		self.matrix = np.array(matrix)
 
-	def checkNeighbourExists(self, neighbour, height, width, matrix):
-		neigHeight = int(neighbour[0])
-		neigWidth = int(neighbour[1])
-		if neigHeight >= int(height) or neigWidth >= int(width) or neigHeight < 0 or neigWidth < 0:
-			return False
-		elif '#' in matrix[neigHeight][neigWidth]:
-			return False
-		else:
-			return True
+	def setAttribute(self, row, height):
+		if 'S' in row:
+			self.S = (height, row.index('S'))
+		if 'P' in row:
+			self.P = (height, row.index('P'))
+		if 'D' in row:
+			self.D = (height, row.index('D'))
 
-	def addOrigin(self, origin):
-		self.reachableBy.append(origin)
+	# Generators improved performance over filtering or if/else return
+	def isAllowed(self, neighbours):
+		(height, width) = self.matrix.shape
+		return (n for n in neighbours if 0 <= n[0] < height and 0 <= n[1] < width and self.matrix[n[0], n[1]] != '#')
 
-	def getNature(self):
-		return self.nature
+	def getNeighbours(self, pos):
+		axis1 = [(-1,-2), (-2,-1), (-1,2), (-2,1), (1,-2), (2, -1), (1,2), (2,1)]
+		axis2 = [(-2,-4), (-4,-2), (-2,4), (-4,2), (2,-4), (4, -2), (2,4), (4,2)]
+		(h,w) = pos
+		# Accessing matrix via [X,Y] proved to be more efficient than [][] (numpy vs py)
+			# Avoid calculation of 2* every iter in loop
+			#coef = 2 if self.matrix[h,w] == '*' else 1
+		axis = axis2 if self.matrix[h,w] == '*' else axis1
+		neighbours = self.isAllowed([( h + ax[0], w + ax[1]) for ax in axis])
+		return list(neighbours)
 
-
-	def getOrigins(self):
-		return self.reachableBy
-
-	def tellDestinantions(self, routerMatrix):
-		for route in self.routes:
-			routerMatrix[route[1][0]][route[1][1]].addOrigin(self.position)
-
-	def printOrigins(self):
-		print('-----------------------------------------------------------------------------------------------')
-		print('ID ' + self.id)
-		for origin in self.reachableBy:
-			print("%s can come to me" % origin[0])
-		if len(self.reachableBy) is 0:
-			print("Nobody can come to me")
-
-	def __repr__(self):
-		print('-----------------------------------------------------------------------------------------------')
-		print('ID ' + self.id)
-		print('POSITION ' + str(self.position))
-		print('NATURE: ' + self.nature)
-		print('REGION: ' + str(self.region))
-		print('ROUTES:')
-		for route in self.routes:
-			print('I can go to %s via %s, %d hop away' % (route[0], route[2], route[4]))
-		if len(self.routes) is 0:
-			print('I can go nowhere')
-		return self.id
-
-
-
-
-
-	
-
-
+# Dijkstra cost-focused implementation
+# Calculations extracted from for loop to reduce compute time (attemptCost is constant for all neighbours)
+def findCost(grid, origin, destination):
+	queue = []
+	heappush(queue, (0, origin))
+	cost = {origin: 0}
+	while len(queue):
+		currentNode = heappop(queue)[1]
+		if currentNode == destination:
+			return cost[destination]
+		attemptCost = cost[currentNode] +1
+		for neighbour in grid.getNeighbours(currentNode):
+			if neighbour not in cost or attemptCost < cost[neighbour]:
+				cost[neighbour] = attemptCost
+				heappush(queue, (attemptCost, neighbour))
+	return -1
 
