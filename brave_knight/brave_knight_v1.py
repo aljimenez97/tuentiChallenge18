@@ -4,7 +4,6 @@ import numpy as np
 from routingSlow import Router
 from tqdm import tqdm
 
-
 inputList = open (sys.argv[1], 'r')
 newLevel = False
 levelN = 0

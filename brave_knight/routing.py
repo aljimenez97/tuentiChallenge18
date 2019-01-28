@@ -31,7 +31,7 @@ class Grid:
 		axis2 = [(-2,-4), (-4,-2), (-2,4), (-4,2), (2,-4), (4, -2), (2,4), (4,2)]
 		(h,w) = pos
 		# Accessing matrix via [X,Y] proved to be more efficient than [][] (numpy vs py)
-			# Avoid calculation of 2* every iter in loop
+			# Avoid calculation of coef* every iter in loop
 			#coef = 2 if self.matrix[h,w] == '*' else 1
 		axis = axis2 if self.matrix[h,w] == '*' else axis1
 		neighbours = self.isAllowed([( h + ax[0], w + ax[1]) for ax in axis])
