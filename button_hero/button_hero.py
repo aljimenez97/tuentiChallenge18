@@ -5,27 +5,28 @@ input_f = open(sys.argv[1],'r')
 output_f = open(sys.argv[2], 'w')
 cases = input_f.readline().rstrip()
 
-# Returns true if track1 (right) overlaps track2 (left)
 def overlap(track1, track2):
 	return track1[0] <= track2[1]
 
+
 for case in tqdm(range(int(cases))):
+	k = int(cases)
 	notes = int(input_f.readline().rstrip())
-	k = notes
-	# Normalize notes in terms of speed
 	tracking = []
-	candidates = {}
+	test = {}
 	toAdd = {}
+	scores = {}
 	for note in range(notes):
 		(x,l,s,p) = list(map(int, (input_f.readline().rstrip().split(' ', 4))))
 		tracking.append((x/s, x/s + l/s, p))
 
-	# Merge those notes that can be captured simultaneously
 	tracking = sorted(tracking)
 	lastTrack = (0.0,0.0,0)
+	toRemove = []
 	newTracks = []
+	
 	for track in tracking:
-		if track[:2] == lastTrack[:2]:
+		if track[0:2] == lastTrack[0:2]:
 			newTracks[-1] = (track[0], track[1], newTracks[-1][2] + track[2])
 		else:
 			newTracks.append(track) 
@@ -33,53 +34,65 @@ for case in tqdm(range(int(cases))):
 
 	tracking = newTracks
 	initial = tracking[0]
-	candidates[0] = [initial]
+	test[0] = [initial]
 	tracking.remove(initial)
-
-	# Start evaluation of notes
+	
+	max_score = (0,0,0)
 	for i, track in tqdm(enumerate(tracking)): 
-		for t in candidates:
-			if not overlap(track, candidates[t][-1]) or (track == candidates[t][-1] and len(candidates[t]) >= 1):
-				candidates[t].append(track)
-			else: # duplicate element of dictionary replacing overlapping note by new note
-				copy = candidates[t].copy()
-				copy.remove(candidates[t][-1])
+		for t in test:
+			if not overlap(track, test[t][-1]) or (track == test[t][-1] and len(test[t]) >= 1):
+				test[t].append(track)
+				if t in scores:
+					scores[t] += track[2]
+				else:
+					scores[t] = track[2]
+			else:
+				copy = test[t].copy()
+				copy.remove(copy[-1])
 				copy.append(track)
-				if len(toAdd): # only add it if not added yet in toAdd dictionary
+				if t in scores:
+					scores[t] -= copy[-1][2]
+					scores[t] += track[2]
+				else:
+					scores[t] = track[2]
+
+				if scores[t] > max_score[0]:
+					max_score = (scores[t], track[1], t)
+
+				if len(toAdd):
 					if copy not in toAdd.values():
-						toAdd[k] = copy 
+						toAdd[k] = copy
 				else:
 					toAdd[k] = copy
-				k += 1 # k value chosen to avoid colisions and therfore losing candidates
-		
-		# Add new elements (dict cannot change while looping through it)
-		candidates.update(toAdd)
+				k += 1
+		toRemove = []
+	
+		test.update(toAdd)
 
-		# Each element of candidates dictionary should have a different last tuple 
-		# so only the one with best score remains
-		(max_index, max_score, indexes) = (-1, -1, [])
-		for t in candidates:
-			if candidates[t][-1] == track:
+		indexes = []
+		scm = -1
+		maxIndex = 0
+		for t in test:
+			if test[t][-1] == track:
 				indexes.append(t)
-				score = 0
-				for x in candidates[t]:
-					score += x[2]
-				if score >= max_score:
-					max_score = score
-					max_index = t
-		# Keep safe the element with the highest score			
-		indexes.remove(max_index)
+				sc = 0
+				for x in test[t]:
+					sc += x[2]
+				if sc >= scm:
+					scm = sc
+					maxIndex = t
+					
+		indexes.remove(maxIndex)
+
 		for i in indexes:
-			candidates.pop(i) 
+			test.pop(i)
 		toAdd = {}
-	# Iterate through dict and get best score then write it
 	score = 0
-	for t in candidates:
+	for t in test:
 		attempt_score = 0
-		for track in candidates[t]:
+		for track in test[t]:
 			attempt_score += track[2]
 		score = attempt_score if attempt_score > score else score
-
 	output_f.write('Case #%d: %d\n' % (case+1, score))
 
 	
